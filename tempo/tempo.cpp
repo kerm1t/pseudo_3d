@@ -24,7 +24,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HWND hWnd;
 
 
-
+#define DRIVING_SPEED     3  // try with [1...10]
+#define MARKER_WIDTH      8
+#define MARKER_WIDTH_HALF MARKER_WIDTH/2
 
 // OpenGL calls moved to own thread
 // s. http://stackoverflow.com/questions/9833852/opengl-game-loop-multithreading
@@ -36,7 +38,7 @@ void RenderThread(void *args)
   POINT apt[2];
 
   COLORREF marker = RGB(255, 255, 255);
-  HPEN hWhite = CreatePen(PS_SOLID, 3, marker);
+  HPEN hWhite = CreatePen(PS_SOLID, 1, marker);
 
   while (true)
   {
@@ -46,16 +48,16 @@ void RenderThread(void *args)
     // moving markers (lower screen half = 120 pixel)
     SelectObject(hdc, hWhite);
     int i = 0;
-    while (i < 240)
+    while (i < 120)
     {
       int y = 10+120 + ((iStart + i) % 120);
-      apt[0] = { 10+160 - 2,y };
-      apt[1] = { 10+160 + 2,y };
+      apt[0] = { 10+160 - MARKER_WIDTH_HALF,y };
+      apt[1] = { 10+160 + MARKER_WIDTH_HALF,y };
       if ((i % 20) < 10)
         Polyline(hdc, apt, 2);
       i++;
     }
-    iStart += 2;
+    iStart += DRIVING_SPEED;
     if (iStart > 120) iStart = 0;
     
     Sleep(40); // important!! otherwise computer will freeze
