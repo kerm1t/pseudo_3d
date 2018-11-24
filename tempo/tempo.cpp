@@ -3,6 +3,9 @@
 
 #include "stdafx.h"
 #include "tempo.h"
+#include "draw.hpp"
+
+#include <process.h> // _beginthread
 
 #define MAX_LOADSTRING 100
 
@@ -16,6 +19,53 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+
+HWND hWnd;
+
+
+
+
+// OpenGL calls moved to own thread
+// s. http://stackoverflow.com/questions/9833852/opengl-game-loop-multithreading
+void RenderThread(void *args)
+{
+  HDC hdc;
+  RECT r = { 160-10,10,160+10,20 };
+  static int iStart = 0;
+  POINT apt[2];
+
+  COLORREF marker = RGB(255, 255, 255);
+  HPEN hWhite = CreatePen(PS_SOLID, 3, marker);
+
+  while (true)
+  {
+    hdc = GetDC(hWnd);
+    loopy2(hdc);
+
+    // moving markers (lower screen half = 120 pixel)
+    SelectObject(hdc, hWhite);
+    int i = 0;
+    while (i < 240)
+    {
+      int y = 10+120 + ((iStart + i) % 120);
+      apt[0] = { 10+160 - 2,y };
+      apt[1] = { 10+160 + 2,y };
+      if ((i % 20) < 10)
+        Polyline(hdc, apt, 2);
+      i++;
+    }
+    iStart += 2;
+    if (iStart > 120) iStart = 0;
+    
+    Sleep(40); // important!! otherwise computer will freeze
+  }
+
+  _endthread();
+}
+
+
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -40,6 +90,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TEMPO));
 
+    _beginthread(RenderThread, 0, 0);
+
     MSG msg;
 
     // Main message loop:
@@ -54,8 +106,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
-
-
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -98,7 +148,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0,
      356, // width
      320, // height
@@ -113,76 +163,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    UpdateWindow(hWnd);
 
    return TRUE;
-}
-
-void loopy(HDC hdc)
-{
-  COLORREF sky     = RGB(34, 141, 203);
-  COLORREF ground  = RGB(0, 197, 0);
-  COLORREF road    = RGB(142, 140, 142);
-  COLORREF marker1 = RGB(255, 46, 0);
-  COLORREF marker2 = RGB(255, 255, 255);
-
-  RECT r = { 10,10,10+320,10+120 };
-  HBRUSH brush = CreateSolidBrush(sky);
-  FillRect(hdc, &r, brush);
-
-  r = { 10,10+120,10 + 320,10 + 240 };
-  brush = CreateSolidBrush(ground);
-  FillRect(hdc, &r, brush);
-
-  // road
-  brush = CreateSolidBrush(road);
-  SelectObject(hdc, brush);
-  HPEN hGray = CreatePen(PS_SOLID, 1, road);
-  SelectObject(hdc, hGray);
-  POINT apt[4] = { { 10,10 + 240 },{ 10 + 160 - 20,10 + 120 },{ 10 + 160 + 20,10 + 120 } ,{ 10 + 320,10 + 240 } };
-  Polygon(hdc, apt, 4);
-
-  // marker red
-  HPEN hRed = CreatePen(PS_SOLID, 4, marker1);
-  SelectObject(hdc, hRed);
-  apt[0] = { 10,10 + 240 };
-  apt[1] = { 10 + 160 - 20, 10 + 120 };
-  Polyline(hdc,apt,2);
-  apt[0] = { 10+320,10 + 240 };
-  apt[1] = { 10+160+20,10 + 120 };
-  Polyline(hdc, apt, 2);
-
-  apt[0] = { 10,10 + 235 };
-  apt[1] = { 10 + 160 - 20, 10 + 120 };
-  Polyline(hdc, apt, 2);
-  apt[0] = { 10 + 320,10 + 235 };
-  apt[1] = { 10 + 160 + 20,10 + 120 };
-  Polyline(hdc, apt, 2);
-
-  apt[0] = { 10,10 + 230 };
-  apt[1] = { 10 + 160 - 20, 10 + 120 };
-  Polyline(hdc, apt, 2);
-  apt[0] = { 10 + 320,10 + 230 };
-  apt[1] = { 10 + 160 + 20,10 + 120 };
-  Polyline(hdc, apt, 2);
-
-
-  // marker white
-  HPEN hWhite = CreatePen(PS_SOLID, 4, marker2);
-  SelectObject(hdc, hWhite);
-  apt[0] = { 10 + 160 - 60,10 + 240 };
-  apt[1] = { 10 + 160 - 10,10 + 120 };
-  Polyline(hdc, apt, 2);
-  apt[0] = { 10 + 160+60,10 + 240 };
-  apt[1] = { 10 + 160 + 10,10 + 120 };
-  Polyline(hdc, apt, 2);
-
-  apt[0] = { 10 + 160 - 55,10 + 240 };
-  apt[1] = { 10 + 160 - 10,10 + 120 };
-  Polyline(hdc, apt, 2);
-  apt[0] = { 10 + 160 + 55,10 + 240 };
-  apt[1] = { 10 + 160 + 10,10 + 120 };
-  Polyline(hdc, apt, 2);
-
-  SetBkColor(hdc, sky);
-  TextOutA(hdc, 30, 30, "Pseudo 3D cheated", 17);
 }
 
 //
@@ -222,7 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: Add any drawing code that uses hdc here...
             
-            loopy(hdc);
+//            loopy2(hdc);
 
             EndPaint(hWnd, &ps);
         }
