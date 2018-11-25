@@ -38,7 +38,7 @@ void RenderThread(void *args)
   POINT apt[2];
 
   COLORREF marker = RGB(255, 255, 255);
-  HPEN hWhite = CreatePen(PS_SOLID, 1, marker);
+  HPEN hWhite = CreatePen(PS_SOLID, 1, marker); // be sure to free this! *)
 
   while (true)
   {
@@ -62,6 +62,8 @@ void RenderThread(void *args)
     
     Sleep(40); // important!! otherwise computer will freeze
   }
+
+  DeleteObject(hWhite); // *) done
 
   _endthread();
 }
@@ -131,7 +133,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_TEMPO);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-//    wcex.cbSize = 400;
 
     return RegisterClassExW(&wcex);
 }
@@ -203,9 +204,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: Add any drawing code that uses hdc here...
-            
-//            loopy2(hdc);
-
             EndPaint(hWnd, &ps);
         }
         break;
